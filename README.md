@@ -1,120 +1,123 @@
 # AnonymBox
 
-Anonymous Q&A with live voting — a Telegram Mini App for speakers and event hosts.
+Анонимные вопросы с живым голосованием — Telegram Mini App для спикеров и ведущих мероприятий.
 
-## Features
+## Возможности
 
-- Audience submits anonymous questions (no author shown)
-- One-vote-per-user upvoting (enforced server-side via hashed fingerprint)
-- Speaker sees live leaderboard updated in real-time via WebSocket
-- Session auto-closes at `closes_at`; organizer can reopen manually
-- QR code + deep link share screen
-- Railway-ready deploy for all three services
+- Аудитория задаёт анонимные вопросы (имя автора не сохраняется)
+- Голосование за вопросы — один голос на вопрос, защита на стороне сервера
+- Спикер видит живой лидерборд с обновлением в реальном времени через WebSocket
+- Сессия автоматически закрывается по времени; организатор может открыть заново вручную
+- Экран «Поделиться» с QR-кодом и deep link
+- Три языка интерфейса: English, Русский, 中文
+- Готово к деплою на Railway
 
-## Project Structure
+## Структура проекта
 
 ```
 anonymbox/
-├── bot/          # Telegraf bot (Telegram bot entry point)
+├── bot/          # Telegraf-бот (точка входа в Telegram)
 ├── backend/      # Fastify REST API + WebSocket
-├── frontend/     # React + TMA Mini App
+├── frontend/     # React + Telegram Mini App
 └── docker-compose.yml
 ```
 
-## Local Setup
+## Локальный запуск
 
-### Prerequisites
+### Требования
 
 - Docker + Docker Compose
-- Node 20+ (for local dev without Docker)
-- A Telegram bot token from [@BotFather](https://t.me/BotFather)
+- Node 20+
+- Токен Telegram-бота от [@BotFather](https://t.me/BotFather)
 
-### 1. Clone & configure
+### 1. Настройка переменных окружения
 
 ```bash
 cp .env.example .env
-# Edit .env — set BOT_TOKEN at minimum
+# Открой .env и пропиши BOT_TOKEN
 ```
 
-### 2. Run with Docker Compose
+### 2. Запуск через Docker Compose
 
 ```bash
 docker-compose up --build
 ```
 
-Services:
-| Service  | URL                   |
-|----------|-----------------------|
-| Frontend | http://localhost:5173 |
-| Backend  | http://localhost:3001 |
-| Postgres | localhost:5432        |
-| Redis    | localhost:6379        |
+Сервисы после запуска:
 
-### 3. Local dev (without Docker)
+| Сервис    | Адрес                 |
+|-----------|-----------------------|
+| Фронтенд  | http://localhost:5173 |
+| Бэкенд    | http://localhost:3001 |
+| PostgreSQL | localhost:5432       |
+| Redis     | localhost:6379        |
 
-Start Postgres and Redis first (or use the compose file for just those):
+### 3. Локальная разработка без Docker
+
+Сначала подними Postgres и Redis:
 
 ```bash
 docker-compose up -d postgres redis
 ```
 
-Then in three terminals:
+Затем в трёх терминалах:
 
 ```bash
-# Backend
+# Бэкенд
 cd backend && npm install && npm run dev
 
-# Bot
+# Бот
 cd bot && npm install && npm run dev
 
-# Frontend
+# Фронтенд
 cd frontend && npm install && npm run dev
 ```
 
-## Environment Variables
+## Переменные окружения
 
-| Variable       | Description                                      |
-|----------------|--------------------------------------------------|
-| `BOT_TOKEN`    | Telegram bot token from BotFather               |
-| `DATABASE_URL` | PostgreSQL connection string                    |
-| `REDIS_URL`    | Redis connection string                         |
-| `FRONTEND_URL` | Public URL of the frontend (for bot deep links) |
-| `BACKEND_URL`  | Public URL of the backend                       |
-| `JWT_SECRET`   | Secret used to salt anonymous fingerprints      |
+| Переменная     | Описание                                              |
+|----------------|-------------------------------------------------------|
+| `BOT_TOKEN`    | Токен Telegram-бота от BotFather                     |
+| `DATABASE_URL` | Строка подключения к PostgreSQL                      |
+| `REDIS_URL`    | Строка подключения к Redis                           |
+| `FRONTEND_URL` | Публичный URL фронтенда (для deep link в боте)       |
+| `BACKEND_URL`  | Публичный URL бэкенда                                |
+| `JWT_SECRET`   | Секрет для соления анонимных отпечатков              |
 
-Frontend also reads:
-| Variable             | Description                          |
-|----------------------|--------------------------------------|
-| `VITE_BACKEND_URL`   | Backend URL (defaults to `/api`)     |
-| `VITE_BOT_USERNAME`  | Bot username for deep links          |
+Фронтенд дополнительно читает:
 
-## Deploy to Railway
+| Переменная            | Описание                                    |
+|-----------------------|---------------------------------------------|
+| `VITE_BACKEND_URL`    | URL бэкенда (по умолчанию `/api`)           |
+| `VITE_BOT_USERNAME`   | Username бота для генерации deep link       |
 
-Each subdirectory (`backend/`, `bot/`, `frontend/`) is an independent Railway service with its own `railway.toml` and `Dockerfile`.
+## Деплой на Railway
 
-1. Create a Railway project
-2. Add services from the repo subdirectories
-3. Add Postgres and Redis plugins
-4. Set env vars on each service
-5. Set `FRONTEND_URL` and `BACKEND_URL` after first deploy
+Каждая папка (`backend/`, `bot/`, `frontend/`) — отдельный Railway-сервис со своим `railway.toml` и `Dockerfile`.
 
-## API Reference
+1. Создай проект на Railway
+2. Добавь сервисы из папок репозитория
+3. Подключи плагины Postgres и Redis
+4. Пропиши переменные окружения в каждом сервисе
+5. После первого деплоя обнови `FRONTEND_URL` и `BACKEND_URL`
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/sessions` | Create session |
-| GET | `/sessions?telegramUserId=` | List user's sessions |
-| GET | `/sessions/:id` | Get session |
-| PATCH | `/sessions/:id/toggle` | Open/close session |
-| POST | `/sessions/:id/questions` | Submit question |
-| GET | `/sessions/:id/questions` | List questions |
-| POST | `/sessions/:id/questions/:qid/vote` | Toggle vote |
-| PATCH | `/sessions/:id/questions/:qid/answered` | Mark answered |
-| PATCH | `/sessions/:id/questions/:qid/hide` | Hide question |
-| WS | `/ws/:sessionId` | Real-time updates |
+## API
 
-## Anonymity Model
+| Метод  | Путь | Описание |
+|--------|------|----------|
+| POST   | `/sessions` | Создать сессию |
+| GET    | `/sessions?telegramUserId=` | Список сессий пользователя |
+| GET    | `/sessions/:id` | Получить сессию |
+| PATCH  | `/sessions/:id/toggle` | Открыть / закрыть сессию |
+| POST   | `/sessions/:id/questions` | Отправить вопрос |
+| GET    | `/sessions/:id/questions` | Список вопросов |
+| POST   | `/sessions/:id/questions/:qid/vote` | Проголосовать / снять голос |
+| PATCH  | `/sessions/:id/questions/:qid/answered` | Отметить отвеченным |
+| PATCH  | `/sessions/:id/questions/:qid/hide` | Скрыть вопрос |
+| WS     | `/ws/:sessionId` | Обновления в реальном времени |
 
-- Questions have no stored author
-- Votes are tracked by `sha256(telegramUserId + sessionId + JWT_SECRET)` — one-way, non-reversible
-- Even the server cannot link a vote back to a user identity
+## Модель анонимности
+
+- Вопросы не содержат имени автора
+- Голоса отслеживаются по `sha256(telegramUserId + sessionId + JWT_SECRET)` — односторонний хеш
+- Даже сервер не может связать голос с конкретным пользователем
