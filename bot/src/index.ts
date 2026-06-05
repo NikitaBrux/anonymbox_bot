@@ -53,5 +53,12 @@ bot.command('help', async (ctx) => {
 bot.launch()
 console.log('Bot started')
 
+// Render требует открытый порт даже для фоновых сервисов
+import { createServer } from 'http'
+const port = Number(process.env.PORT ?? 3000)
+createServer((_, res) => res.end('ok')).listen(port, () => {
+  console.log(`Health check listening on :${port}`)
+})
+
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
